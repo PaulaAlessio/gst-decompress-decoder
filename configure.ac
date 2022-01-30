@@ -11,7 +11,7 @@ GSTPB_REQUIRED=0.10.16
 dnl required versions of zlib
 ZLIB_REQUIRED=1.2.0
 
-AC_CONFIG_SRCDIR([src/gstplugin.c])
+AC_CONFIG_SRCDIR([src/gstgzdec.c])
 AC_CONFIG_HEADERS([config.h])
 
 dnl required version of automake
