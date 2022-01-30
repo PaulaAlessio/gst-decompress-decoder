@@ -7,8 +7,8 @@ AC_INIT([gzdec-package],[0.10.0])
 
 AC_ARG_WITH([gstreamer-api],
    AC_HELP_STRING([--with-gstreamer-api=VERSION],
-                  [build against the specified GStreamer API version
-                  @<:@default=1.0@:>@]),
+                  [build against the specified GStreamer API version, 
+                  default 1.0]),
    [GST_API_VERSION="$with_gstreamer_api"], [GST_API_VERSION=1.0])
 
 case $GST_API_VERSION in

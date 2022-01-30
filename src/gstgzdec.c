@@ -310,25 +310,27 @@ gst_gzdec_chain (GstPad * pad, GstBuffer * buf)
   if (filter->silent == FALSE)
     g_print ("I'm plugged, decompressing data\n");
 
-  GstBuffer *out_buf = NULL;
+  GstBuffer *obuf = NULL;
   guint8 *zipped_msg, *msg;
   zipped_msg = GST_BUFFER_DATA(buf);
-  uint lenIn = (uint)GST_BUFFER_SIZE(buf);
-  uint lenOut;
-  if( inflate_buffer(zipped_msg, &msg, lenIn, &lenOut))
+  uint len_in = (uint)GST_BUFFER_SIZE(buf);
+  uint len_out;
+  if( inflate_buffer(zipped_msg, &msg, len_in, &len_out))
   {
      /* just push out the incoming buffer without touching it  and return error*/
      if (filter->silent == FALSE)
        g_print("Stream could not be inflated correctly, returning error (-5)\n");
      gst_pad_push (filter->srcpad, buf);
-     return -5; // GstFlowReturn ERROR
+     return GST_FLOW_ERROR;
   }
-  out_buf = gst_buffer_new();
-  GST_BUFFER_SIZE(out_buf) = lenOut;
-  gst_buffer_set_data(out_buf, msg, lenOut);
+  obuf = gst_buffer_new();
+  GST_BUFFER_SIZE(obuf) = len_out;
+  gst_buffer_set_data(obuf, msg, len_out);
 
   /* push out the decompressed buffer */
-  GstFlowReturn ret = gst_pad_push (filter->srcpad, out_buf);
+  GstFlowReturn ret = gst_pad_push (filter->srcpad, obuf);
+  gst_buffer_unref (buf);
+  return ret;
 }
 #else  
 static GstFlowReturn
@@ -340,27 +342,30 @@ gst_gzdec_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   if (filter->silent == FALSE)
     g_print ("I'm plugged, decompressing data\n");
 
-  GstBuffer *out_buf = NULL;
+  GstBuffer *obuf = NULL;
   GstMemory  *mem = NULL;
-  GstMapInfo map = GST_MAP_INFO_INIT, omap;
-  gst_buffer_map (buf, &map, GST_MAP_READ);
-  uint lenOut;
+  GstMapInfo map = GST_MAP_INFO_INIT;
+  gst_buffer_map(buf, &map, GST_MAP_READ);
+  uint len_out;
   guint8 *msg;
-  if( inflate_buffer(map.data, &msg, map.size, &lenOut))
+  if( inflate_buffer(map.data, &msg, map.size, &len_out))
   {
      /* just push out the incoming buffer without touching it  and return error*/
      if (filter->silent == FALSE)
        g_print("Stream could not be inflated correctly, returning error (-5)\n");
+     gst_buffer_unmap (buf, &map);
      gst_pad_push (filter->srcpad, buf);
-     return -5; // GstFlowReturn ERROR
+     return GST_FLOW_ERROR;
   }
 
-  out_buf = gst_buffer_new();
-  mem = gst_memory_new_wrapped (GST_MEMORY_FLAG_READONLY,msg, lenOut, 
-                                0, lenOut, NULL, NULL);
-  gst_buffer_append_memory(out_buf, mem);
+  obuf = gst_buffer_new();
+  mem = gst_memory_new_wrapped (GST_MEMORY_FLAG_READONLY,msg, len_out, 
+                                0, len_out, NULL, NULL);
+  gst_buffer_append_memory(obuf, mem);
 
-  GstFlowReturn ret = gst_pad_push (filter->srcpad, out_buf);
+  GstFlowReturn ret = gst_pad_push (filter->srcpad, obuf);
+  gst_buffer_unmap (buf, &map);
+  gst_buffer_unref (buf);
   return ret;
 }
 #endif  

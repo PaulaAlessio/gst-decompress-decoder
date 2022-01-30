@@ -10,7 +10,7 @@
 /* zlib chunks */
 #define CHUNK 16384
 
-int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint *lenOut)
+int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uint *len_out)
 {
   int ret;
   unsigned have;
@@ -29,15 +29,15 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint
   ret = inflateInit2(&strm, 16 + MAX_WBITS);
   if (ret != Z_OK)   return ret;
 
-  uInt dest_size = lenIn;
+  uInt dest_size = len_in;
   uInt realloc_size = dest_size > CHUNK ? dest_size : CHUNK;
   uInt dest_free_size = dest_size;
   *dest = malloc(dest_size);
   if(*dest == NULL) return -1;
   out = *dest;
-  *lenOut = 0;
+  *len_out = 0;
 
-  uInt remainingIn = lenIn;
+  uInt remainingIn = len_in;
   /* decompress until deflate stream ends or end of file */
   do
   {
@@ -62,7 +62,7 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint
         *dest = new_dest;
         dest_size += realloc_size;
         dest_free_size += realloc_size;
-        out = *dest + *lenOut;
+        out = *dest + *len_out;
       }
       strm.avail_out = CHUNK;
       strm.next_out = out;
@@ -84,7 +84,7 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint
           return ret;
       }
       have = CHUNK - strm.avail_out;
-      *lenOut += have;
+      *len_out += have;
       out += have;
       dest_free_size -= have;
 
@@ -95,10 +95,10 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint
     /* done when inflate() says it's done */
   } while (ret != Z_STREAM_END);
 
-  if(*lenOut)
+  if(*len_out)
   {
     unsigned char * new_dest;
-    new_dest = realloc(*dest, *lenOut);
+    new_dest = realloc(*dest, *len_out);
     if(!new_dest)
     {
       free(*dest);
@@ -116,6 +116,4 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint lenIn, uint
   (void)inflateEnd(&strm);
   return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
 }
-
-
 
