@@ -1,23 +1,32 @@
 # gzdec decoder
 
-
- - provides a GStreamer plugin to decompress gzip streams
+ - This project provides a GStreamer plugin to decompress gzip streams
  - compatible with GStreamer-0.10 and GStreamer-1.0
 
 ## Requirements
- - zlib
+ - GStreamer 0.10 (>0.10.3) or GStreamer 1.0 (>1.0.0)
+ - zlib (>1.2)
 
-## Build
- Do autogen.sh
-configure option 
+## Build and install
+
+Type:
+```
+autogen.sh
+```
+This will configure the project for GStreamer 1.0. If you can use the option `--with-gstreamer-api` to choose
+between the two versions
 
 ```
---with-gstreamer-api=1.0/0.10]
+./configure --with-gstreamer-api=0.10
 ```
-
-you can install with 
+Build the project with `make` and install it in your system with 
 ```
 sudo make install
+```
+
+You can clean the build with 
+```
+make distclean
 ```
 
 ## Usage
@@ -28,6 +37,3 @@ gst-launch-0.10 filesrc location=file.txt.gz ! gzdec ! filesink location="file.t
 # Gstreamer-1.0
 gst-launch-1.0 filesrc location=file.txt.gz ! gzdec ! filesink location="file.txt"
 ```
-
-## Test
-The generated stream must be the same as doing
