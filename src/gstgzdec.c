@@ -138,10 +138,10 @@ static void
 gst_gzdec_class_init (GstGzdecClass * klass)
 {
   GObjectClass *gobject_class;
-  GstElementClass *gstelement_class;
+//  GstElementClass *gstelement_class;
 
   gobject_class = (GObjectClass *) klass;
-  gstelement_class = (GstElementClass *) klass;
+//  gstelement_class = (GstElementClass *) klass;
 
   gobject_class->set_property = gst_gzdec_set_property;
   gobject_class->get_property = gst_gzdec_get_property;
@@ -225,7 +225,7 @@ gst_gzdec_set_caps (GstPad * pad, GstCaps * caps)
   return gst_pad_set_caps (otherpad, caps);
 }
 
-int inflate(unsigned char *source, unsigned char **dest, uInt lenIn, uInt *lenOut)
+int inflate_stream(unsigned char *source, unsigned char **dest, uInt lenIn, uInt *lenOut)
 {
   int ret;
   unsigned have;
@@ -349,10 +349,13 @@ gst_gzdec_chain (GstPad * pad, GstBuffer * buf)
   zipped_msg = GST_BUFFER_DATA(buf);
   uInt lenIn = (uInt)GST_BUFFER_SIZE(buf);
   uInt lenOut;
-  if( infret = inflate(zipped_msg, &msg, lenIn, &lenOut) != Z_OK)
+  if( inflate_stream(zipped_msg, &msg, lenIn, &lenOut) != Z_OK)
   {
-     /* just push out the incoming buffer without touching it */
-     return
+     /* just push out the incoming buffer without touching it  and return error*/
+     if (filter->silent == FALSE)
+       g_print("Stream could not be inflated correctly, returning error (-5)\n");
+     gst_pad_push (filter->srcpad, buf);
+     return -5; // GstFlowReturn ERROR
   }
   GstBuffer *out_buf = NULL;
   out_buf = gst_buffer_new ();
