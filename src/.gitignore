@@ -2,4 +2,4 @@
 .libs/
 Makefile
 libgstgzdec.la
-libgstgzdec_la-gstgzdec.lo
+libgstgzdec_la-*
