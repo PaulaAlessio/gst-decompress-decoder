@@ -19,12 +19,18 @@ between the two versions
 ```
 ./configure --with-gstreamer-api=0.10
 ```
-Build the project with `make` and install it in your system with 
+Build the project with `make` (type `make clean` beforehand if it had been already build)
+and install it in your system with 
 ```
 sudo make install
 ```
 
-You can clean the build with 
+You can clean the build with, 
+```
+make clean
+```
+
+If you want to clean the build and configuration files, type
 ```
 make distclean
 ```
