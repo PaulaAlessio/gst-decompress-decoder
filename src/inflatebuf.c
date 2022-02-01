@@ -4,20 +4,15 @@
  * Code taken from zlib public repo (file zpipe.c) 
  **/
 
-#include "stdlib.h"
-#include "zlib.h"
+#include <stdlib.h>
+#include <zlib.h>
 
 /* zlib chunks */
 #define CHUNK 16384
+z_stream strm;
 
-int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uint *len_out)
+int init_buffer()
 {
-  int ret;
-  unsigned have;
-  z_stream strm;
-  unsigned char *in = source;
-  unsigned char *out;
-
   /* allocate inflate state */
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
@@ -26,8 +21,18 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uin
   strm.next_in = Z_NULL;
   // This function is needed to be called instead of inflateInit
   // in order for it to work for G-streams
-  ret = inflateInit2(&strm, 16 + MAX_WBITS);
-  if (ret != Z_OK)   return ret;
+  return inflateInit2(&strm, 16 + MAX_WBITS);
+
+}
+
+int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uint *len_out)
+{
+  static int callNo = 0;
+  int ret = -1;
+  unsigned have;
+  unsigned char *in = source;
+  unsigned char *out;
+
 
   uInt dest_size = len_in;
   uInt realloc_size = dest_size > CHUNK ? dest_size : CHUNK;
@@ -67,18 +72,13 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uin
       strm.avail_out = CHUNK;
       strm.next_out = out;
       ret = inflate(&strm, Z_NO_FLUSH);
-      if(ret == Z_STREAM_ERROR)  /* state not clobbered */
-      {
-        (void)inflateEnd(&strm);
-        free (*dest);
-        return ret;
-      }
       switch (ret)
       {
         case Z_NEED_DICT:
           ret = Z_DATA_ERROR;     /* and fall through */
         case Z_DATA_ERROR:
         case Z_MEM_ERROR:
+        case Z_STREAM_ERROR: /* state is not clobbered */
           (void)inflateEnd(&strm);
           free (*dest);
           return ret;
@@ -87,7 +87,6 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uin
       *len_out += have;
       out += have;
       dest_free_size -= have;
-
     } while (strm.avail_out == 0);
 
     in += next_chunk_length;
@@ -95,6 +94,7 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uin
     /* done when inflate() says it's done */
   } while (ret != Z_STREAM_END);
 
+  callNo++;
   if(*len_out)
   {
     unsigned char * new_dest;
@@ -113,7 +113,20 @@ int inflate_buffer(unsigned char *source, unsigned char **dest, uint len_in, uin
   }
 
   /* clean up and return */
-  (void)inflateEnd(&strm);
-  return ret == Z_STREAM_END ? Z_OK : Z_DATA_ERROR;
+  if (ret == Z_STREAM_END)
+  {  
+    ret =inflateEnd(&strm);
+  }  
+  // Buffer error might occur under these conditions: inflate has no more 
+  // output, but just so happened to exactly fill the output buffer! avail_out
+  // is zero, and we can't tell that inflate() has done all it can. 
+  // As far as we know, inflate() has more output for us. 
+  // So we call it again. But now inflate() produces no output at all, returns
+  // Z_BUF_ERR and avail_out remains unchanged as CHUNK.
+  if (ret == Z_OK || ret == Z_BUF_ERROR)
+  {  
+    return Z_OK;
+  }  
+  return ret;
 }
 
