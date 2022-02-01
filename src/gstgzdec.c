@@ -316,10 +316,10 @@ gst_gzdec_chain (GstPad * pad, GstBuffer * buf)
   int z_ret = inflate_buffer(zipped_msg, &msg, len_in, &len_out);
   if(z_ret != 0)
   {
-     /* just push out the incoming buffer without touching it  and return error*/
      if (filter->silent == FALSE)
        g_print("Stream could not be inflated correctly, returning error: (%d) \n", z_ret);
-     gst_pad_push (filter->srcpad, buf);
+     gst_buffer_unmap (buf, &map);
+     gst_buffer_unref (buf);
      return GST_FLOW_ERROR;
   }
   obuf = gst_buffer_new();
@@ -347,11 +347,10 @@ gst_gzdec_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   int z_ret = inflate_buffer(map.data, &msg, map.size, &len_out);
   if(z_ret != 0) 
   {
-     /* just push out the incoming buffer without touching it  and return error*/
      if (filter->silent == FALSE)
        g_print("Stream could not be inflated correctly, returning error (%d)\n", z_ret);
      gst_buffer_unmap (buf, &map);
-     gst_pad_push (filter->srcpad, buf);
+     gst_buffer_unref (buf);
      return GST_FLOW_ERROR;
   }
 
